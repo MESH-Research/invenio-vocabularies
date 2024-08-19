@@ -25,7 +25,9 @@ from invenio_records_resources.services.records.params import (
     FilterParam,
     SuggestQueryParser,
 )
-from invenio_records_resources.services.records.schema import ServiceSchemaWrapper
+from invenio_records_resources.services.records.schema import (
+    ServiceSchemaWrapper,
+)
 from invenio_records_resources.services.uow import unit_of_work
 from invenio_search.engine import dsl
 
@@ -44,16 +46,32 @@ class VocabularySearchOptions(SearchOptions):
         FilterParam.factory(param="tags", field="tags"),
     ] + SearchOptions.params_interpreters_cls
 
+    # FIXME: These fields are tweaked specifically for the languages
+    #       vocabulary. They should be configurable by vocab type but
+    #       currently are not.
     suggest_parser_cls = SuggestQueryParser.factory(
         fields=[
-            "id.text^100",
+            "id.text^4",
             "id.text._2gram",
             "id.text._3gram",
             "title.en^5",
             "title.en._2gram",
             "title.en._3gram",
+            "props.alpha_2^3",
+            "props.alpha_2.keyword",
         ],
     )
+
+    # suggest_parser_cls = SuggestQueryParser.factory(
+    #     fields=[
+    #         "id.text^100",
+    #         "id.text._2gram",
+    #         "id.text._3gram",
+    #         "title.en^5",
+    #         "title.en._2gram",
+    #         "title.en._3gram",
+    #     ],
+    # )
 
     sort_default = "bestmatch"
 
@@ -129,7 +147,12 @@ class VocabulariesService(RecordService):
         return type_
 
     def search(
-        self, identity, params=None, search_preference=None, type=None, **kwargs
+        self,
+        identity,
+        params=None,
+        search_preference=None,
+        type=None,
+        **kwargs
     ):
         """Search for vocabulary entries."""
         self.require_permission(identity, "search")
@@ -163,7 +186,9 @@ class VocabulariesService(RecordService):
             links_item_tpl=self.links_item_tpl,
         )
 
-    def read_all(self, identity, fields, type, cache=True, extra_filter="", **kwargs):
+    def read_all(
+        self, identity, fields, type, cache=True, extra_filter="", **kwargs
+    ):
         """Search for records matching the querystring."""
         cache_key = type + "_" + str(extra_filter) + "_" + "-".join(fields)
         results = current_cache.get(cache_key)
@@ -176,7 +201,11 @@ class VocabulariesService(RecordService):
             if extra_filter:
                 vocab_id_filter = vocab_id_filter & extra_filter
             results = self._read_many(
-                identity, search_query, fields, extra_filter=vocab_id_filter, **kwargs
+                identity,
+                search_query,
+                fields,
+                extra_filter=vocab_id_filter,
+                **kwargs
             )
             if cache:
                 # ES DSL Response is not pickable.
