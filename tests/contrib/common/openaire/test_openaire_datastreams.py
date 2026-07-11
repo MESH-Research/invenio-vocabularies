@@ -41,6 +41,27 @@ API_JSON_RESPONSE_CONTENT = {
     ]
 }
 
+API_JSON_RESPONSE_CONTENT_PROJECTS_TAR = {
+    "linkset": [
+        {
+            "anchor": "https://example.com/records/20407508",
+            "item": [
+                {
+                    "href": "https://example.com/records/20407508/files/projects.tar",
+                    "type": "application/x-tar",
+                },
+            ],
+        },
+        {
+            "anchor": "https://example.com/api/records/20407508",
+            "describes": [
+                {"href": "https://example.com/records/20407508", "type": "text/html"}
+            ],
+            "type": "application/dcat+xml",
+        },
+    ]
+}
+
 API_JSON_RESPONSE_CONTENT_WRONG_NUMBER_PROJECT_TAR_ITEMS_ERROR = {
     "linkset": [
         {
@@ -100,6 +121,38 @@ def test_openaire_http_reader(_, download_file_bytes_content):
     results = []
     for entry in reader.read():
         results.append(entry)
+
+    assert len(results) == 1
+    assert isinstance(results[0], io.BytesIO)
+    assert results[0].read() == download_file_bytes_content
+
+
+@patch(
+    "requests.get",
+    side_effect=lambda url, headers=None: MockResponse(
+        API_JSON_RESPONSE_CONTENT_PROJECTS_TAR
+    ),
+)
+def test_openaire_http_reader_projects_tar(_, download_file_bytes_content):
+    reader = OpenAIREHTTPReader(origin="diff", tar_href="/projects.tar")
+    results = list(reader.read())
+
+    assert len(results) == 1
+    assert isinstance(results[0], io.BytesIO)
+    assert results[0].read() == download_file_bytes_content
+
+
+@patch(
+    "requests.get",
+    side_effect=lambda url, headers=None: MockResponse(
+        API_JSON_RESPONSE_CONTENT_PROJECTS_TAR
+    ),
+)
+def test_openaire_http_reader_project_tar_fallback_to_projects_tar(
+    _, download_file_bytes_content
+):
+    reader = OpenAIREHTTPReader(origin="diff", tar_href="/project.tar")
+    results = list(reader.read())
 
     assert len(results) == 1
     assert isinstance(results[0], io.BytesIO)

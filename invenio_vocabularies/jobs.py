@@ -113,7 +113,7 @@ class ImportAwardsOpenAIREJob(ProcessDataStreamJob):
                 "readers": [
                     {
                         "type": "openaire-http",
-                        "args": {"origin": "diff", "tar_href": "/project.tar"},
+                        "args": {"origin": "diff", "tar_href": "/projects.tar"},
                     },
                     {
                         "type": "tar",

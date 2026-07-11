@@ -29,6 +29,20 @@ class OpenAIREHTTPReader(BaseReader):
             "OpenAIREHTTPReader downloads one file and therefore does not iterate through items"
         )
 
+    def _tar_href_suffixes(self):
+        """Return tar href suffixes to try, preferred first.
+
+        Zenodo renamed the diff dataset tarball from ``project.tar`` to
+        ``projects.tar``; accept either so scheduled jobs keep working across
+        dataset versions.
+        """
+        if self.tar_href in ("/project.tar", "/projects.tar"):
+            alternate = (
+                "/projects.tar" if self.tar_href == "/project.tar" else "/project.tar"
+            )
+            return [self.tar_href, alternate]
+        return [self.tar_href]
+
     def read(self, item=None, *args, **kwargs):
         """Reads the latest OpenAIRE Graph Dataset tar file of a given type from Zenodo and yields an in-memory binary stream of it."""
         if item:
@@ -55,15 +69,18 @@ class OpenAIREHTTPReader(BaseReader):
         landing_page_linkset = api_resp.json()["linkset"][0]
 
         # Extract the URL of the only tar file matching `tar_href` linked to the record.
+        tar_href_suffixes = self._tar_href_suffixes()
         landing_page_matching_tar_items = [
             item
             for item in landing_page_linkset["item"]
             if item["type"] == "application/x-tar"
-            and item["href"].endswith(self.tar_href)
+            and any(item["href"].endswith(suffix) for suffix in tar_href_suffixes)
         ]
         if len(landing_page_matching_tar_items) != 1:
             raise ReaderError(
-                f"Expected 1 tar item matching {self.tar_href} but got {len(landing_page_matching_tar_items)}"
+                "Expected 1 tar item matching "
+                f"{', '.join(tar_href_suffixes)} but got "
+                f"{len(landing_page_matching_tar_items)}"
             )
         file_url = landing_page_matching_tar_items[0]["href"]
 
