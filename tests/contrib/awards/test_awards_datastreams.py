@@ -197,6 +197,26 @@ def test_awards_transformer(app, dict_award_entry, expected_from_award_json):
     assert expected_from_award_json == transformer.apply(dict_award_entry).entry
 
 
+def test_awards_transformer_ignores_null_or_empty_summary(
+    app, dict_award_entry, expected_from_award_json
+):
+    """Null/empty OpenAIRE summaries must not set award description."""
+    transformer = OpenAIREProjectTransformer()
+
+    for summary in (None, ""):
+        entry = deepcopy(dict_award_entry)
+        entry.entry["summary"] = summary
+        result = transformer.apply(entry).entry
+        assert expected_from_award_json == result
+        assert "description" not in result
+
+    with_summary = deepcopy(dict_award_entry)
+    with_summary.entry["summary"] = "Project summary text"
+    expected = deepcopy(expected_from_award_json)
+    expected["description"] = {"en": "Project summary text"}
+    assert expected == transformer.apply(with_summary).entry
+
+
 def test_awards_service_writer_create(
     app, search_clear, example_funder_ec, award_full_data
 ):

@@ -121,8 +121,12 @@ class OpenAIREProjectTransformer(BaseTransformer):
             award["start_date"] = record["startDate"]
         if "endDate" in record:
             award["end_date"] = record["endDate"]
-        if "summary" in record:
-            award["description"] = {"en": record["summary"]}
+        # OpenAIRE often includes ``"summary": null``. Only map non-empty
+        # strings; ``{"en": None}`` fails awards schema validation and drops
+        # otherwise valid awards.
+        summary = record.get("summary")
+        if summary:
+            award["description"] = {"en": summary}
 
         stream_entry.entry = award
         return stream_entry
