@@ -5,7 +5,7 @@
 // Invenio is free software; you can redistribute it and/or modify it
 // under the terms of the MIT License; see LICENSE file for more details.
 
-import React from "react";
+import React, { useRef } from "react";
 import PropTypes from "prop-types";
 import { FieldArray, getIn } from "formik";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -36,6 +36,38 @@ function FundingFieldForm(props) {
     computeFundingContents: computeFundingContentsFunc,
     searchConfig,
   } = props;
+
+  // Maintain stable React keys for list items to avoid triggering
+  // component remounts when one item's funding content changes. Formik
+  // has no notion of per-item identity, so we shadow its array operations.
+  const itemKeysRef = useRef([]);
+
+  const ensureItemKeys = (length) => {
+    const itemKeys = itemKeysRef.current;
+    while (itemKeys.length < length) {
+      itemKeys.push(crypto.randomUUID());
+    }
+    if (itemKeys.length > length) {
+      itemKeys.length = length;
+    }
+  };
+
+  const moveFunding = (from, to) => {
+    const itemKeys = itemKeysRef.current;
+    const [key] = itemKeys.splice(from, 1);
+    itemKeys.splice(to, 0, key);
+    formikArrayMove(from, to);
+  };
+
+  const pushFunding = (value) => {
+    itemKeysRef.current.push(crypto.randomUUID());
+    formikArrayPush(value);
+  };
+
+  const removeFunding = (index) => {
+    itemKeysRef.current.splice(index, 1);
+    formikArrayRemove(index);
+  };
 
   const deserializeAward = deserializeAwardFunc
     ? deserializeAwardFunc
@@ -94,26 +126,26 @@ function FundingFieldForm(props) {
     className = typeof fundingError !== "string" ? fundingError.severity : "error";
   }
 
+  ensureItemKeys(fundingList.length);
+
   return (
     <DndProvider backend={HTML5Backend}>
       <Form.Field required={required} className={className}>
         <FieldLabel htmlFor={fieldPath} icon={labelIcon} label={label} />
         <List>
           {fundingList.map((value, index) => {
-            const key = `${fieldPath}.${index}`;
             // if award does not exist or has no id, it's a custom one
             const awardType = value?.award?.id ? "standard" : "custom";
             return (
               <FundingFieldItem
-                key={key}
+                key={itemKeysRef.current[index]}
                 {...{
                   index,
-                  compKey: key,
                   fundingItem: value,
                   awardType,
-                  moveFunding: formikArrayMove,
+                  moveFunding: moveFunding,
                   replaceFunding: formikArrayReplace,
-                  removeFunding: formikArrayRemove,
+                  removeFunding: removeFunding,
                   searchConfig: searchConfig,
                   computeFundingContents: computeFundingContents,
                   deserializeAward: deserializeAward,
@@ -139,9 +171,7 @@ function FundingFieldForm(props) {
                 {i18next.t("Add")}
               </Button>
             }
-            onAwardChange={(selectedFunding) => {
-              formikArrayPush(selectedFunding);
-            }}
+            onAwardChange={pushFunding}
             mode="standard"
             action="add"
             deserializeAward={deserializeAward}
@@ -165,9 +195,7 @@ function FundingFieldForm(props) {
                 {i18next.t("Add custom")}
               </Button>
             }
-            onAwardChange={(selectedFunding) => {
-              formikArrayPush(selectedFunding);
-            }}
+            onAwardChange={pushFunding}
             mode="custom"
             action="add"
             deserializeAward={deserializeAward}
@@ -216,10 +244,9 @@ FundingFieldForm.defaultProps = {
 export function FundingField(props) {
   const { fieldPath } = props;
   return (
-    <FieldArray
-      name={fieldPath}
-      component={(formikProps) => <FundingFieldForm {...formikProps} {...props} />}
-    />
+    <FieldArray name={fieldPath}>
+      {(formikProps) => <FundingFieldForm {...formikProps} {...props} />}
+    </FieldArray>
   );
 }
 

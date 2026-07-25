@@ -8,7 +8,7 @@
 import { i18next } from "@translations/invenio_vocabularies/i18next";
 import { Formik } from "formik";
 import PropTypes from "prop-types";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   EmptyResults,
   Error,
@@ -86,10 +86,14 @@ function FundingModal({
 }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState(initialMode);
+  const triggerRef = useRef(null);
   const openModal = () => setOpen(true);
   const closeModal = () => {
     setMode(initialMode);
     setOpen(false);
+    setTimeout(() => {
+      triggerRef.current?.focus();
+    }, 0);
   };
   const onSubmit = (values, formikBag) => {
     formikBag.setSubmitting(false);
@@ -123,6 +127,7 @@ function FundingModal({
           centered={false}
           onOpen={openModal}
           open={open}
+          triggerRef={triggerRef}
           trigger={React.cloneElement(trigger, {
             "aria-expanded": open,
             "aria-haspopup": "dialog",

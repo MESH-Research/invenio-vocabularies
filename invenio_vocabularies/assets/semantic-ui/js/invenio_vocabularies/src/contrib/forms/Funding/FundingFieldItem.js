@@ -15,7 +15,6 @@ import FundingModal from "./FundingModal";
 import PropTypes from "prop-types";
 
 export const FundingFieldItem = ({
-  compKey,
   index,
   fundingItem,
   awardType,
@@ -62,9 +61,8 @@ export const FundingFieldItem = ({
   // Initialize the ref explicitely
   drop(dropRef);
   return (
-    <Ref innerRef={dropRef} key={compKey}>
+    <Ref innerRef={dropRef}>
       <List.Item
-        key={compKey}
         className={hidden ? "deposit-drag-listitem hidden" : "deposit-drag-listitem"}
       >
         <List.Content floated="right">
@@ -131,7 +129,6 @@ export const FundingFieldItem = ({
 };
 
 FundingFieldItem.propTypes = {
-  compKey: PropTypes.any,
   index: PropTypes.number,
   fundingItem: PropTypes.object,
   awardType: PropTypes.string,
@@ -145,7 +142,6 @@ FundingFieldItem.propTypes = {
 };
 
 FundingFieldItem.defaultProps = {
-  compKey: undefined,
   index: undefined,
   fundingItem: undefined,
   awardType: undefined,
